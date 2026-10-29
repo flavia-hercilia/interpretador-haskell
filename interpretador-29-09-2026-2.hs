@@ -322,9 +322,25 @@ prog1 = Block
   , Return (BinE Add (Var "x") (Var "y"))
   ]
 
+-- int x = 10; float y = 3.5; retorna x + y;
+prog9 :: Stmt
+prog9 = Block
+  [Decl TInt "x" (Lit 10)
+  , Decl TFloat "y" (FLit 3.5)
+  , Return (BinE Add (Var "x") (Var "y"))
+  ]  
+
+-- float x = 2.5; int y = 8; retorna x + y;
+prog10 :: Stmt
+prog10 = Block
+  [Decl TFloat "x" (FLit 2.5)
+  , Decl TInt "y" (Lit 8)
+  , Return (BinE Add (Var "x") (Var "y"))
+  ] 
+
 -- float x = 5.5; float y = 2.0; retorna x / y;
-progFloat :: Stmt
-progFloat = Block
+prog11 :: Stmt
+prog11 = Block
   [ Decl TFloat "x" (FLit 5.5)
   , Decl TFloat "y" (FLit 2.0)
   , Return (BinE Div (Var "x") (Var "y"))
@@ -335,6 +351,15 @@ prog2 :: Stmt
 prog2 = Block
   [ Decl TInt "n" (Lit 7)
   , If (BinE Gt (Var "n") (Lit 5))
+       (Return (BLit True))
+       (Return (BLit False))
+  ]
+
+-- float m = 4.5; se (m < 5) retorna verdadeiro senao retorna falso
+prog12 :: Stmt
+prog12 = Block
+  [ Decl TFloat "m" (FLit 4.5)
+  , If (BinE Lt (Var "m") (Lit 5))
        (Return (BLit True))
        (Return (BLit False))
   ]
@@ -389,15 +414,30 @@ testSomaSimples = TestCase $ do
   v <- runProg Map.empty prog1
   assertEqual "soma 10 + 3" (VInt 13) v
 
+testSomaIntFloat :: Test
+testSomaIntFloat = TestCase $ do
+  v <- runProg Map.empty prog9
+  assertEqual "soma 10 + 3.5" (VFloat 13.5) v
+
+testSomaFloatInt :: Test
+testSomaFloatInt = TestCase $ do
+  v <- runProg Map.empty prog10
+  assertEqual "soma 2.5 + 8" (VFloat 10.5) v
+
 testDivFloat :: Test
 testDivFloat = TestCase $ do
-  v <- runProg Map.empty progFloat
+  v <- runProg Map.empty prog11
   assertEqual "divisao de float 5.5 / 2.0" (VFloat 2.75) v
 
 testCondicionalVerdade :: Test
 testCondicionalVerdade = TestCase $ do
   v <- runProg Map.empty prog2
   assertEqual "7 > 5 eh verdadeiro" (VBool True) v
+
+testComparaFloatInt :: Test
+testComparaFloatInt = TestCase $ do
+  v <- runProg Map.empty prog12
+  assertEqual "4.5 < 5 eh verdadeiro" (VBool True) v
 
 testWhileContaAte3 :: Test
 testWhileContaAte3 = TestCase $ do
@@ -436,7 +476,10 @@ testImprimeCallDobro = TestCase $ do
 suite :: Test
 suite = TestList
   [ TestLabel "soma simples"         testSomaSimples
+  , TestLabel "float soma simples 1" testSomaIntFloat
+  , TestLabel "float soma simples 2" testSomaFloatInt
   , TestLabel "condicional"          testCondicionalVerdade
+  , TestLabel "condicional2"         testComparaFloatInt
   , TestLabel "while retorna"        testWhileContaAte3
   , TestLabel "chamada dobro"        testDobro
   , TestLabel "fatorial recursivo"   testFatorial

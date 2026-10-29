@@ -338,11 +338,11 @@ prog10 = Block
   , Return (BinE Add (Var "x") (Var "y"))
   ] 
 
--- float x = 5.5; float y = 2.0; retorna x / y;
+-- float x = 5.5; int y = 2; retorna x / y;
 prog11 :: Stmt
 prog11 = Block
   [ Decl TFloat "x" (FLit 5.5)
-  , Decl TFloat "y" (FLit 2.0)
+  , Decl TInt "y" (Lit 2)
   , Return (BinE Div (Var "x") (Var "y"))
   ]
 
@@ -362,6 +362,14 @@ prog12 = Block
   , If (BinE Lt (Var "m") (Lit 5))
        (Return (BLit True))
        (Return (BLit False))
+  ]
+
+-- float x = 14.25; float y = 1.5; retorna x / y;
+prog13 :: Stmt
+prog13 = Block
+  [ Decl TFloat "x" (FLit 14.25)
+  , Decl TFloat "y" (FLit 1.5)
+  , Return (BinE Div (Var "x") (Var "y"))
   ]
 
 -- int i = 0; enquanto (i < 3) { i = i + 1; } retorna i;
@@ -424,10 +432,15 @@ testSomaFloatInt = TestCase $ do
   v <- runProg Map.empty prog10
   assertEqual "soma 2.5 + 8" (VFloat 10.5) v
 
-testDivFloat :: Test
-testDivFloat = TestCase $ do
+testDivFloatInt :: Test
+testDivFloatInt = TestCase $ do
   v <- runProg Map.empty prog11
-  assertEqual "divisao de float 5.5 / 2.0" (VFloat 2.75) v
+  assertEqual "divisao de float 5.5 / 2" (VFloat 2.75) v
+
+testDivFloatFloat :: Test
+testDivFloatFloat = TestCase $ do
+  v <- runProg Map.empty prog13
+  assertEqual "divisao de float 14.25 / 1.5" (VFloat 9.5) v
 
 testCondicionalVerdade :: Test
 testCondicionalVerdade = TestCase $ do
@@ -476,17 +489,18 @@ testImprimeCallDobro = TestCase $ do
 suite :: Test
 suite = TestList
   [ TestLabel "soma simples"         testSomaSimples
-  , TestLabel "float soma simples 1" testSomaIntFloat
-  , TestLabel "float soma simples 2" testSomaFloatInt
+  , TestLabel "soma int float"       testSomaIntFloat
+  , TestLabel "soma float int"       testSomaFloatInt
   , TestLabel "condicional"          testCondicionalVerdade
-  , TestLabel "condicional2"         testComparaFloatInt
+  , TestLabel "compara float int"    testComparaFloatInt
   , TestLabel "while retorna"        testWhileContaAte3
   , TestLabel "chamada dobro"        testDobro
   , TestLabel "fatorial recursivo"   testFatorial
   , TestLabel "chamada aninhada"     testChamadaAninhada
   , TestLabel "while imprime"        testWhileImprime
   , TestLabel "imprime call dobro"   testImprimeCallDobro
-  , TestLabel "divisao float"        testDivFloat
+  , TestLabel "divisao float int"    testDivFloatInt
+  , TestLabel "divisao float float"  testDivFloatFloat
   ]
 
 main :: IO ()

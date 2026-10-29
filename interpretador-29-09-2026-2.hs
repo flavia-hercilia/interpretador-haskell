@@ -16,6 +16,7 @@ import System.IO.Silently (capture_)
 
 data Type
   = TInt
+  | TFloat
   | TBool
   | TVoid
   deriving (Show, Eq)
@@ -28,6 +29,7 @@ data BinOp
 
 data Expr
   = Lit   Int
+  | FLit  Float
   | BLit  Bool
   | Var   String
   | BinE  BinOp Expr Expr
@@ -59,6 +61,7 @@ data FunDecl = FunDecl
 -- programas lidam com inteiros e booleanos
 data Value
   = VInt  Int
+  | VFloat  Float
   | VBool Bool
   | VVoid
   deriving (Show, Eq)
@@ -87,6 +90,8 @@ evalExpr fenv env expr = case expr of
 
   Lit  n -> return (VInt n)
   BLit b -> return (VBool b)
+  FLit m -> return (VFloat m)
+
 
   Var x  -> case Map.lookup x env of
                Nothing -> error ("Variavel nao declarada: " ++ x)
@@ -140,6 +145,33 @@ evalBinOp Le  (VInt  a) (VInt  b) = VBool (a <= b)
 evalBinOp Ge  (VInt  a) (VInt  b) = VBool (a >= b)
 evalBinOp And (VBool a) (VBool b) = VBool (a && b)
 evalBinOp Or  (VBool a) (VBool b) = VBool (a || b)
+
+evalBinOp Add (VFloat a) (VFloat b) = VFloat (a + b)
+evalBinOp Add (VFloat a) (VInt b)   = VFloat (a + fromIntegral b)
+evalBinOp Add (VInt a)   (VFloat b) = VFloat (fromIntegral a + b)
+evalBinOp Sub (VFloat a) (VFloat b) = VFloat (a - b)
+evalBinOp Sub (VFloat a) (VInt b)   = VFloat (a - fromIntegral b)
+evalBinOp Sub (VInt a)   (VFloat b) = VFloat (fromIntegral a - b)
+evalBinOp Mul (VFloat a) (VFloat b) = VFloat (a * b)
+evalBinOp Mul (VFloat a) (VInt b)   = VFloat (a * fromIntegral b)
+evalBinOp Mul (VInt a)   (VFloat b) = VFloat (fromIntegral a * b)
+evalBinOp Div (VFloat a) (VFloat b) = VFloat (a / b)
+evalBinOp Div (VFloat a) (VInt b)   = VFloat (a / fromIntegral b)
+evalBinOp Div (VInt a)   (VFloat b) = VFloat (fromIntegral a / b)
+evalBinOp Lt  (VFloat a) (VFloat b) = VBool (a < b)
+evalBinOp Lt  (VFloat a) (VInt b)   = VBool (a < fromIntegral b)
+evalBinOp Lt  (VInt a)   (VFloat b) = VBool (fromIntegral a < b)
+evalBinOp Gt  (VFloat a) (VFloat b) = VBool (a > b)
+evalBinOp Gt  (VFloat a) (VInt b)   = VBool (a > fromIntegral b)
+evalBinOp Gt  (VInt a)   (VFloat b) = VBool (fromIntegral a > b)
+evalBinOp Le  (VFloat a) (VFloat b) = VBool (a <= b)
+evalBinOp Le  (VFloat a) (VInt b)   = VBool (a <= fromIntegral b)
+evalBinOp Le  (VInt a)   (VFloat b) = VBool (fromIntegral a <= b)
+evalBinOp Ge  (VFloat a) (VFloat b) = VBool (a >= b)
+evalBinOp Ge  (VFloat a) (VInt b)   = VBool (a >= fromIntegral b)
+evalBinOp Ge  (VInt a)   (VFloat b) = VBool (fromIntegral a >= b)
+
+
 evalBinOp op  _         _         =
   error ("Operacao invalida ou tipos incompativeis: " ++ show op)
 
@@ -216,6 +248,7 @@ showValue :: Value -> String
 showValue (VInt  n) = show n
 showValue (VBool b) = if b then "verdadeiro" else "falso"
 showValue VVoid     = "()"
+showValue (VFloat  m) = show m
 
 -- ============================================================
 -- Auxiliares para testes
@@ -289,6 +322,14 @@ prog1 = Block
   , Return (BinE Add (Var "x") (Var "y"))
   ]
 
+-- float x = 5.5; float y = 2.0; retorna x / y;
+progFloat :: Stmt
+progFloat = Block
+  [ Decl TFloat "x" (FLit 5.5)
+  , Decl TFloat "y" (FLit 2.0)
+  , Return (BinE Div (Var "x") (Var "y"))
+  ]
+
 -- int n = 7; se (n > 5) retorna verdadeiro senao retorna falso
 prog2 :: Stmt
 prog2 = Block
@@ -348,6 +389,11 @@ testSomaSimples = TestCase $ do
   v <- runProg Map.empty prog1
   assertEqual "soma 10 + 3" (VInt 13) v
 
+testDivFloat :: Test
+testDivFloat = TestCase $ do
+  v <- runProg Map.empty progFloat
+  assertEqual "divisao de float 5.5 / 2.0" (VFloat 2.75) v
+
 testCondicionalVerdade :: Test
 testCondicionalVerdade = TestCase $ do
   v <- runProg Map.empty prog2
@@ -397,6 +443,7 @@ suite = TestList
   , TestLabel "chamada aninhada"     testChamadaAninhada
   , TestLabel "while imprime"        testWhileImprime
   , TestLabel "imprime call dobro"   testImprimeCallDobro
+  , TestLabel "divisao float"        testDivFloat
   ]
 
 main :: IO ()

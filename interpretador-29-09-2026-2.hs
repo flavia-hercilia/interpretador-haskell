@@ -419,6 +419,10 @@ prog7 = Block
 prog8 :: Stmt
 prog8 = Print (Call "dobro" [Lit 4])
 
+-- imprime(2.5)
+prog15 :: Stmt
+prog15 = Print (FLit 2.5)
+
 -- ============================================================
 -- Suite de testes HUnit
 -- ============================================================
@@ -496,6 +500,11 @@ testImprimeCallDobro :: Test
 testImprimeCallDobro = TestCase $ do
   output <- runProgIO fenvExemplo prog8
   assertEqual "imprime dobro(4)" "8\n" output
+  
+testImprimeFloat :: Test
+testImprimeFloat = TestCase $ do
+  output <- runProgIO Map.empty prog15
+  assertEqual "imprime 2.5" "2.5\n" output
 
 -- suite completa
 
@@ -512,9 +521,10 @@ suite = TestList
   , TestLabel "chamada aninhada"     testChamadaAninhada
   , TestLabel "while imprime"        testWhileImprime
   , TestLabel "imprime call dobro"   testImprimeCallDobro
-  , TestLabel "divisao float int"    testDivIntFloat
+  , TestLabel "divisao int float"    testDivIntFloat
   , TestLabel "divisao float float"  testDivFloatFloat
   , TestLabel "divisao int int"      testDivIntInt
+  , TestLabel "imprime float"        testImprimeFloat
   ]
 
 main :: IO ()

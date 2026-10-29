@@ -514,6 +514,7 @@ suite = TestList
   , TestLabel "imprime call dobro"   testImprimeCallDobro
   , TestLabel "divisao float int"    testDivIntFloat
   , TestLabel "divisao float float"  testDivFloatFloat
+  , TestLabel "divisao int int"      testDivIntInt
   ]
 
 main :: IO ()

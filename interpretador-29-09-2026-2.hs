@@ -375,8 +375,8 @@ prog13 = Block
 -- int x = 7; int y = 2; retorna x / y;
 prog14 :: Stmt
 prog14 = Block
-  [ Decl TInt "x" (FLit 7)
-  , Decl TInt "y" (FLit 2)
+  [ Decl TInt "x" (Lit 7)
+  , Decl TInt "y" (Lit 2)
   , Return (BinE Div (Var "x") (Var "y"))
   ]
 

@@ -338,11 +338,11 @@ prog10 = Block
   , Return (BinE Add (Var "x") (Var "y"))
   ] 
 
--- float x = 5.5; int y = 2; retorna x / y;
+-- int x = 7; float y = 2.0; retorna x / y;
 prog11 :: Stmt
 prog11 = Block
-  [ Decl TFloat "x" (FLit 5.5)
-  , Decl TInt "y" (Lit 2)
+  [ Decl TInt "x" (Lit 7)
+  , Decl TFloat "y" (FLit 2.0)
   , Return (BinE Div (Var "x") (Var "y"))
   ]
 
@@ -369,6 +369,14 @@ prog13 :: Stmt
 prog13 = Block
   [ Decl TFloat "x" (FLit 14.25)
   , Decl TFloat "y" (FLit 1.5)
+  , Return (BinE Div (Var "x") (Var "y"))
+  ]
+
+-- int x = 7; int y = 2; retorna x / y;
+prog14 :: Stmt
+prog14 = Block
+  [ Decl TInt "x" (FLit 7)
+  , Decl TInt "y" (FLit 2)
   , Return (BinE Div (Var "x") (Var "y"))
   ]
 
@@ -432,10 +440,15 @@ testSomaFloatInt = TestCase $ do
   v <- runProg Map.empty prog10
   assertEqual "soma 2.5 + 8" (VFloat 10.5) v
 
-testDivFloatInt :: Test
-testDivFloatInt = TestCase $ do
+testDivIntFloat :: Test
+testDivIntFloat = TestCase $ do
   v <- runProg Map.empty prog11
-  assertEqual "divisao de float 5.5 / 2" (VFloat 2.75) v
+  assertEqual "divisao de int float 7 / 2.0" (VFloat 3.5) v
+
+testDivIntInt :: Test
+testDivIntInt = TestCase $ do
+  v <- runProg Map.empty prog14
+  assertEqual "divisao de int 7 / 2" (VInt 3) v
 
 testDivFloatFloat :: Test
 testDivFloatFloat = TestCase $ do
@@ -499,7 +512,7 @@ suite = TestList
   , TestLabel "chamada aninhada"     testChamadaAninhada
   , TestLabel "while imprime"        testWhileImprime
   , TestLabel "imprime call dobro"   testImprimeCallDobro
-  , TestLabel "divisao float int"    testDivFloatInt
+  , TestLabel "divisao float int"    testDivIntFloat
   , TestLabel "divisao float float"  testDivFloatFloat
   ]
 

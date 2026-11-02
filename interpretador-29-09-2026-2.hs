@@ -448,6 +448,13 @@ prog16 = Block
   , Return (Call "somaGlobal" [Lit 200])
   ]
 
+prog17 :: Stmt
+prog17 = Block
+  [ Decl TInt "x" (Lit 10)
+  , Assign "x" (BLit True)
+  , Return (Var "x")
+  ]
+
 -- ============================================================
 -- Suite de testes HUnit
 -- ============================================================
@@ -519,6 +526,11 @@ testEscopoGlobal = TestCase $ do
   v <- runProg fenvExemplo prog16
   assertEqual "soma global de x (100) e y (200)" (VInt 300) v
 
+testTipoIncompativel :: Test
+testTipoIncompativel = TestCase $ do
+  v <- runProg Map.empty prog17
+  assertEqual "x eh 10" (VInt 10) v
+
 -- testes de saída impressa (usam runProgIO)
 
 testWhileImprime :: Test
@@ -556,6 +568,7 @@ suite = TestList
   , TestLabel "divisao int int"      testDivIntInt
   , TestLabel "imprime float"        testImprimeFloat
   , TestLabel "escopo global"        testEscopoGlobal
+  , TestLabel "tipo incompativel"    testTipoIncompativel
   ]
 
 main :: IO ()

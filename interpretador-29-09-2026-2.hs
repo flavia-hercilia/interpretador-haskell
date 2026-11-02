@@ -130,7 +130,9 @@ evalExpr fenv env expr = case expr of
           else do
             vals <- evalArgs fenv env args 
             let params   = map snd (funParams fun)
-                envLocal = Map.fromList (zip params vals)
+                envArgs = Map.fromList (zip params vals)
+                -- map.union une as variveis locais com as globais
+                envLocal = Map.union envArgs env
             result <- execStmt fenv envLocal (funBody fun)
             case result of
               Returned v _ -> return v
@@ -312,11 +314,19 @@ funSoma = FunDecl
   , funBody   = Return (BinE Add (Var "a") (Var "b"))
   }
 
+funSomaGlobal :: FunDecl
+funSomaGlobal = FunDecl
+  { funName   = "somaGlobal"
+  , funParams = [(TInt, "y")]
+  , funBody   = Return (BinE Add (Var "x") (Var "y"))
+  }
+
 fenvExemplo :: FunEnv
 fenvExemplo = Map.fromList
   [ ("dobro",    funDobro)
   , ("fatorial", funFatorial)
   , ("soma",     funSoma)
+  , ("somaGlobal", funSomaGlobal)
   ]
 
 -- ============================================================
@@ -432,6 +442,12 @@ prog8 = Print (Call "dobro" [Lit 4])
 prog15 :: Stmt
 prog15 = Print (FLit 2.5)
 
+prog16 :: Stmt
+prog16 = Block
+  [ Decl TInt "x" (Lit 100)
+  , Return (Call "somaGlobal" [Lit 200])
+  ]
+
 -- ============================================================
 -- Suite de testes HUnit
 -- ============================================================
@@ -498,6 +514,11 @@ testChamadaAninhada = TestCase $ do
   v <- runProg fenvExemplo prog6
   assertEqual "soma(dobro(4), 3) eh 11" (VInt 11) v
 
+testEscopoGlobal :: Test
+testEscopoGlobal = TestCase $ do
+  v <- runProg fenvExemplo prog16
+  assertEqual "soma global de x (100) e y (200)" (VInt 300) v
+
 -- testes de saída impressa (usam runProgIO)
 
 testWhileImprime :: Test
@@ -534,6 +555,7 @@ suite = TestList
   , TestLabel "divisao float float"  testDivFloatFloat
   , TestLabel "divisao int int"      testDivIntInt
   , TestLabel "imprime float"        testImprimeFloat
+  , TestLabel "escopo global"        testEscopoGlobal
   ]
 
 main :: IO ()

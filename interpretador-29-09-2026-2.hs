@@ -468,6 +468,7 @@ prog17 = Block
   , Return (Var "x")
   ]
 
+prog18 :: Stmt 
 prog18 = Block
   [ Decl TInt "x" (Lit 10)
   , Assign "x" (FLit 4.5)

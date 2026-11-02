@@ -468,6 +468,19 @@ prog17 = Block
   , Return (Var "x")
   ]
 
+prog18 = Block
+  [ Decl TInt "x" (Lit 10)
+  , Assign "x" (FLit 4.5)
+  , Return (Var "x")
+  ]
+
+prog19 :: Stmt 
+prog19 = Block
+  [ Decl TFloat "x" (FLit 4.5)
+  , Assign "x" (Lit 10)
+  , Return (Var "x")
+  ]
+
 -- ============================================================
 -- Suite de testes HUnit
 -- ============================================================
@@ -544,6 +557,16 @@ testTipoIncompativel = TestCase $ do
   v <- runProg Map.empty prog17
   assertEqual "x eh 10" (VInt 10) v
 
+testAssignIntFloat :: Test
+testAssignIntFloat = TestCase $ do
+  v <- runProg Map.empty prog18
+  assertEqual "x eh 4" (VInt 4) v
+
+testAssignFloatInt :: Test
+testAssignFloatInt = TestCase $ do
+  v <- runProg Map.empty prog19
+  assertEqual "x eh 10.0" (VFloat 10.0) v
+
 -- testes de saída impressa (usam runProgIO)
 
 testWhileImprime :: Test
@@ -582,6 +605,8 @@ suite = TestList
   , TestLabel "imprime float"        testImprimeFloat
   , TestLabel "escopo global"        testEscopoGlobal
   --, TestLabel "tipo incompativel"    testTipoIncompativel
+  , TestLabel "assign int float"     testAssignIntFloat
+  , TestLabel "assign float int"     testAssignFloatInt
   ]
 
 main :: IO ()

@@ -85,6 +85,15 @@ data StmtResult
 -- Avaliação de Expressões 
 -- ============================================================
 
+-- refatoração:
+-- função auxiliar que força a avaliação da função estritamente da esquerda para a direita
+evalArgs :: FunEnv -> Env -> [Expr] -> IO [Value]
+evalArgs fenv env [] = return []
+evalArgs fenv env (exprAtual : restoExprs) = do
+  valorAtual <- evalExpr fenv env exprAtual
+  valorRestante <- evalArgs fenv env restoExprs 
+  return (valorAtual : valorRestante)
+
 evalExpr :: FunEnv -> Env -> Expr -> IO Value
 evalExpr fenv env expr = case expr of
 
@@ -119,7 +128,7 @@ evalExpr fenv env expr = case expr of
                       show nparams ++ " argumentos, recebeu " ++
                       show nargs)
           else do
-            vals <- mapM (evalExpr fenv env) args
+            vals <- evalArgs fenv env args 
             let params   = map snd (funParams fun)
                 envLocal = Map.fromList (zip params vals)
             result <- execStmt fenv envLocal (funBody fun)

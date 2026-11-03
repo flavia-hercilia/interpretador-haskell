@@ -263,6 +263,17 @@ execStmt fenv env stmt = case stmt of
           Next        env' -> execStmt fenv env' (While cond body)
       _ -> error "Condicao do While nao eh booleana"
 
+  Switch expr casos comandoDefault -> do
+    v <- evalExpr fenv env expr
+
+    let procuraCaso alvo [] = execStmt fenv env comandoDefault
+        procuraCaso alvo ((exprAtual, comandoAtual) : restoDaLista) = do
+          valorAtual <- evalExpr fenv env exprAtual
+          if valorAtual == alvo
+            then execStmt fenv env comandoAtual
+            else procuraCaso alvo restoDaLista
+    procuraCaso v casos
+
 -- ============================================================
 -- Execução de um bloco
 -- ============================================================

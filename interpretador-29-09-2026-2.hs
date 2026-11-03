@@ -46,6 +46,7 @@ data Stmt
   | Return Expr                -- return x + y
   | Print  Expr                -- printf (10)
   | Skip
+  | Switch Expr [(Expr, Stmt)] Stmt
   deriving (Show, Eq)
 
 data FunDecl = FunDecl

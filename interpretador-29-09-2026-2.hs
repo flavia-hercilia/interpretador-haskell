@@ -497,6 +497,18 @@ prog19 = Block
   , Return (Var "x")
   ]
 
+prog20 :: Stmt
+prog20 = Block
+  [ Decl TInt "x" (Lit 2)
+  , Decl TInt "y" (Lit 0)
+  , Switch(Var "x")
+      [ (Lit 1, Assign "y" (Lit 10))
+      , (Lit 2, Assign "y" (Lit 20)) 
+      ]
+      (Assign "y" (Lit 30))
+  , Return (Var "y")
+  ]
+
 -- ============================================================
 -- Suite de testes HUnit
 -- ============================================================
@@ -583,6 +595,11 @@ testAssignFloatInt = TestCase $ do
   v <- runProg Map.empty prog19
   assertEqual "x eh 10.0" (VFloat 10.0) v
 
+testSwitch :: Test
+testSwitch = TestCase $ do
+  v <- runProg Map.empty prog20
+  assertEqual "y eh 20" (VInt 20) v
+
 -- testes de saída impressa (usam runProgIO)
 
 testWhileImprime :: Test
@@ -623,6 +640,7 @@ suite = TestList
   --, TestLabel "tipo incompativel"    testTipoIncompativel
   , TestLabel "assign int float"     testAssignIntFloat
   , TestLabel "assign float int"     testAssignFloatInt
+  , TestLabel "switch case"          testSwitch
   ]
 
 main :: IO ()

@@ -213,19 +213,29 @@ execStmt fenv env stmt = case stmt of
         v <- evalExpr fenv env e
         case (valorOriginal, v) of
 
-          (VInt _, VInt _)     -> do
+          (VInt _, VInt _)       -> do
             let env' = Map.insert x v env
             return (Next env')
 
-          (VFloat _, VFloat _) -> do
+          (VInt _, VFloat f)     -> do
+            let vConvertido = VInt (truncate f)
+            let env' = Map.insert x vConvertido env
+            return (Next env')
+
+          (VFloat _, VFloat _)   -> do
             let env' = Map.insert x v env
             return (Next env')
 
-          (VBool _, VBool _)   -> do
+          (VFloat _, VInt n)     -> do
+            let vConvertido = VFloat (fromIntegral n)
+            let env' = Map.insert x vConvertido env
+            return (Next env')
+
+          (VBool _, VBool _)     -> do
             let env' = Map.insert x v env
             return (Next env')
 
-          _                    -> error "Tipos incompativeis"
+          _                      -> error "Tipos incompativeis"
       
   If cond t f -> do
     v <- evalExpr fenv env cond
@@ -455,12 +465,14 @@ prog8 = Print (Call "dobro" [Lit 4])
 prog15 :: Stmt
 prog15 = Print (FLit 2.5)
 
+-- retorna 300
 prog16 :: Stmt
 prog16 = Block
   [ Decl TInt "x" (Lit 100)
   , Return (Call "somaGlobal" [Lit 200])
   ]
 
+-- retorna erro de tipos incompativeis
 prog17 :: Stmt
 prog17 = Block
   [ Decl TInt "x" (Lit 10)
@@ -468,6 +480,7 @@ prog17 = Block
   , Return (Var "x")
   ]
 
+-- retorna 4
 prog18 :: Stmt 
 prog18 = Block
   [ Decl TInt "x" (Lit 10)
@@ -475,6 +488,7 @@ prog18 = Block
   , Return (Var "x")
   ]
 
+-- retorna 10.0
 prog19 :: Stmt 
 prog19 = Block
   [ Decl TFloat "x" (FLit 4.5)

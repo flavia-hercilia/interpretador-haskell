@@ -563,6 +563,44 @@ prog20 = Block
   , Return (Var "y")
   ]
 
+-- int[] v = {2, 8, 24}, retorna v[1]
+prog21 :: Stmt
+prog21 = Block
+  [ Decl (TArray TInt) "v" (ArrayLit [Lit 2, Lit 8, Lit 24])
+  , Return (Index "v" (Lit 1))
+  ]
+
+-- int[] v = {10, 20, 30} e v[0] = 99; retorna v[0];
+prog22 :: Stmt
+prog22 = Block
+  [ Decl (TArray TInt) "v" (ArrayLit [Lit 10, Lit 20, Lit 30])
+  , ArrayAssign "v" (Lit 0) (Lit 99)
+  , Return (Index "v" (Lit 0))
+  ]
+
+-- int[] v = {1, 2, 3} e imprime(v);
+prog23 :: Stmt
+prog23 = Block
+  [ Decl (TArray TInt) "v" (ArrayLit [Lit 1, Lit 2, Lit 3])
+  , Print (Var "v")
+  ]
+
+-- float[] v = {1.5, 2.5} e retorna v[1];
+prog24 :: Stmt
+prog24 = Block
+  [ Decl (TArray TFloat) "v" (ArrayLit [FLit 1.5, FLit 2.5])
+  , Return (Index "v" (Lit 1))
+  ]
+
+-- bool[] v = {True, False} e retorna v[1];
+prog25 :: Stmt
+prog25 = Block
+  [ Decl (TArray TBool) "v" (ArrayLit [BLit True, BLit False])
+  , Return (Index "v" (Lit 1))
+  ]
+
+
+
 -- ============================================================
 -- Suite de testes HUnit
 -- ============================================================
@@ -654,6 +692,26 @@ testSwitch = TestCase $ do
   v <- runProg Map.empty prog20
   assertEqual "y eh 20" (VInt 20) v
 
+testLerPosicao :: Test
+testLerPosicao = TestCase $ do
+  v <- runProg Map.empty prog21
+  assertEqual "ler posicao v[1]" (VInt 8) v
+
+testEscreverPosicao :: Test
+testEscreverPosicao = TestCase $ do
+  v <- runProg Map.empty prog22
+  assertEqual "escrever 99 em v[0]" (VInt 99) v
+
+testArrayFloat :: Test
+testArrayFloat = TestCase $ do
+  v <- runProg Map.empty prog24
+  assertEqual "array de float v[1]" (VFloat 2.5) v
+
+testArrayBool :: Test
+testArrayBool = TestCase $ do
+  v <- runProg Map.empty prog25
+  assertEqual "array de bool v[1]" (VBool False) v
+
 -- testes de saída impressa (usam runProgIO)
 
 testWhileImprime :: Test
@@ -670,6 +728,12 @@ testImprimeFloat :: Test
 testImprimeFloat = TestCase $ do
   output <- runProgIO Map.empty prog15
   assertEqual "imprime 2.5" "2.5\n" output
+
+testImprimirArray :: Test
+testImprimirArray = TestCase $ do
+  output <- runProgIO Map.empty prog23
+  assertEqual "imprimir array [1, 2, 3]" "[1, 2, 3]\n" output
+
 
 -- suite completa
 
@@ -691,10 +755,15 @@ suite = TestList
   , TestLabel "divisao int int"      testDivIntInt
   , TestLabel "imprime float"        testImprimeFloat
   , TestLabel "escopo global"        testEscopoGlobal
-  --, TestLabel "tipo incompativel"    testTipoIncompativel
+  --, TestLabel "tipo incompativel"  testTipoIncompativel
   , TestLabel "assign int float"     testAssignIntFloat
   , TestLabel "assign float int"     testAssignFloatInt
   , TestLabel "switch case"          testSwitch
+  , TestLabel "ler posicao"          testLerPosicao
+  , TestLabel "escrever posicao"     testEscreverPosicao
+  , TestLabel "imprimir array"       testImprimirArray
+  , TestLabel "array de float"       testArrayFloat
+  , TestLabel "array de bool"        testArrayBool
   ]
 
 main :: IO ()

@@ -19,6 +19,7 @@ data Type
   | TFloat
   | TBool
   | TVoid
+  | TArray Type
   deriving (Show, Eq)
 
 data BinOp
@@ -35,6 +36,8 @@ data Expr
   | BinE  BinOp Expr Expr
   | Not   Expr
   | Call  String [Expr]
+  | ArrayLit [Expr]
+  | Index String Expr
   deriving (Show, Eq)
 
 data Stmt
@@ -46,6 +49,7 @@ data Stmt
   | Return Expr                -- return x + y
   | Print  Expr                -- printf (10)
   | Skip
+  | ArrayAssign String Expr Expr
   deriving (Show, Eq)
 
 data FunDecl = FunDecl
@@ -64,6 +68,7 @@ data Value
   | VFloat  Float
   | VBool Bool
   | VVoid
+  | VArray [Value]
   deriving (Show, Eq)
 
 -- variaveis no escopo do programa
@@ -126,6 +131,21 @@ evalExpr fenv env expr = case expr of
             case result of
               Returned v _ -> return v
               Next _       -> return VVoid
+
+  ArrayLit exprs -> do
+    vals <- mapM (evalExpr fenv env) exprs
+    return (VArray vals)
+
+  Index x idxExpr -> do
+    idx <- evalExpr fenv env idxExpr
+    arr <- case Map.lookup x env of
+      Nothing -> error ("Variavel nao declarada: " ++ x)
+      Just v  -> return v
+    case (arr, idx) of
+      (VArray elems, VInt i)
+        | i >= 0 && i < length elems -> return (elems !! i)
+        | otherwise -> error "Indice de array fora dos limites"
+      _ -> error "Acesso a indice invalido ou tipo nao e array/inteiro"
 
 -- ============================================================
 -- evalBinOp — permanece pura
@@ -217,6 +237,20 @@ execStmt fenv env stmt = case stmt of
   Block stmts ->
     execBlock fenv env stmts
 
+  ArrayAssign x idxExpr valExpr -> do
+    idx <- evalExpr fenv env idxExpr
+    val <- evalExpr fenv env valExpr
+    arr <- case Map.lookup x env of
+      Nothing -> error ("Variavel nao declarada: " ++ x)
+      Just v  -> return v
+    case (arr, idx) of
+      (VArray elems, VInt i)
+        | i >= 0 && i < length elems -> do
+            let newElems = take i elems ++ [val] ++ drop (i + 1) elems
+            return (Next (Map.insert x (VArray newElems) env))
+        | otherwise -> error "Indice de array fora dos limites"
+      _ -> error "Atribuicao invalida em array"
+
   While cond body -> do
     v <- evalExpr fenv env cond
     case v of
@@ -249,6 +283,15 @@ showValue (VInt  n) = show n
 showValue (VBool b) = if b then "verdadeiro" else "falso"
 showValue VVoid     = "()"
 showValue (VFloat  m) = show m
+showValue (VArray xs) = "["++ showArrayElems xs ++ "]"
+  where 
+    showArrayElems [] = ""
+    showArrayElems [x] = showValue x
+    showArrayElems (x:xs) = showValue x ++ ", " ++ showArrayElems xs
+
+  
+
+
 
 -- ============================================================
 -- Auxiliares para testes

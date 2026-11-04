@@ -49,6 +49,7 @@ data Stmt
   | Return Expr                -- return x + y
   | Print  Expr                -- printf (10)
   | Skip
+  | Switch Expr [(Expr, Stmt)] Stmt
   | ArrayAssign String Expr Expr
   deriving (Show, Eq)
 
@@ -90,6 +91,15 @@ data StmtResult
 -- Avaliação de Expressões 
 -- ============================================================
 
+-- refatoração:
+-- função auxiliar que força a avaliação da função estritamente da esquerda para a direita
+evalArgs :: FunEnv -> Env -> [Expr] -> IO [Value]
+evalArgs fenv env [] = return []
+evalArgs fenv env (exprAtual : restoExprs) = do
+  valorAtual <- evalExpr fenv env exprAtual
+  valorRestante <- evalArgs fenv env restoExprs 
+  return (valorAtual : valorRestante)
+
 evalExpr :: FunEnv -> Env -> Expr -> IO Value
 evalExpr fenv env expr = case expr of
 
@@ -124,9 +134,11 @@ evalExpr fenv env expr = case expr of
                       show nparams ++ " argumentos, recebeu " ++
                       show nargs)
           else do
-            vals <- mapM (evalExpr fenv env) args
+            vals <- evalArgs fenv env args 
             let params   = map snd (funParams fun)
-                envLocal = Map.fromList (zip params vals)
+                envArgs = Map.fromList (zip params vals)
+                -- map.union une as variveis locais com as globais
+                envLocal = Map.union envArgs env
             result <- execStmt fenv envLocal (funBody fun)
             case result of
               Returned v _ -> return v
@@ -218,11 +230,34 @@ execStmt fenv env stmt = case stmt of
   Assign x e ->
     case Map.lookup x env of
       Nothing -> error ("Variavel nao declarada: " ++ x)
-      Just _  -> do
+      Just valorOriginal  -> do
         v <- evalExpr fenv env e
-        let env' = Map.insert x v env
-        return (Next env')
+        case (valorOriginal, v) of
 
+          (VInt _, VInt _)       -> do
+            let env' = Map.insert x v env
+            return (Next env')
+
+          (VInt _, VFloat f)     -> do
+            let vConvertido = VInt (truncate f)
+            let env' = Map.insert x vConvertido env
+            return (Next env')
+
+          (VFloat _, VFloat _)   -> do
+            let env' = Map.insert x v env
+            return (Next env')
+
+          (VFloat _, VInt n)     -> do
+            let vConvertido = VFloat (fromIntegral n)
+            let env' = Map.insert x vConvertido env
+            return (Next env')
+
+          (VBool _, VBool _)     -> do
+            let env' = Map.insert x v env
+            return (Next env')
+
+          _                      -> error "Tipos incompativeis"
+      
   If cond t f -> do
     v <- evalExpr fenv env cond
     case v of
@@ -261,6 +296,17 @@ execStmt fenv env stmt = case stmt of
           Returned v' env' -> return (Returned v' env')
           Next        env' -> execStmt fenv env' (While cond body)
       _ -> error "Condicao do While nao eh booleana"
+
+  Switch expr casos comandoDefault -> do
+    v <- evalExpr fenv env expr
+
+    let procuraCaso alvo [] = execStmt fenv env comandoDefault
+        procuraCaso alvo ((exprAtual, comandoAtual) : restoDaLista) = do
+          valorAtual <- evalExpr fenv env exprAtual
+          if valorAtual == alvo
+            then execStmt fenv env comandoAtual
+            else procuraCaso alvo restoDaLista
+    procuraCaso v casos
 
 -- ============================================================
 -- Execução de um bloco
@@ -346,11 +392,19 @@ funSoma = FunDecl
   , funBody   = Return (BinE Add (Var "a") (Var "b"))
   }
 
+funSomaGlobal :: FunDecl
+funSomaGlobal = FunDecl
+  { funName   = "somaGlobal"
+  , funParams = [(TInt, "y")]
+  , funBody   = Return (BinE Add (Var "x") (Var "y"))
+  }
+
 fenvExemplo :: FunEnv
 fenvExemplo = Map.fromList
   [ ("dobro",    funDobro)
   , ("fatorial", funFatorial)
   , ("soma",     funSoma)
+  , ("somaGlobal", funSomaGlobal)
   ]
 
 -- ============================================================
@@ -466,6 +520,49 @@ prog8 = Print (Call "dobro" [Lit 4])
 prog15 :: Stmt
 prog15 = Print (FLit 2.5)
 
+-- retorna 300
+prog16 :: Stmt
+prog16 = Block
+  [ Decl TInt "x" (Lit 100)
+  , Return (Call "somaGlobal" [Lit 200])
+  ]
+
+-- retorna erro de tipos incompativeis
+prog17 :: Stmt
+prog17 = Block
+  [ Decl TInt "x" (Lit 10)
+  , Assign "x" (BLit True)
+  , Return (Var "x")
+  ]
+
+-- retorna 4
+prog18 :: Stmt 
+prog18 = Block
+  [ Decl TInt "x" (Lit 10)
+  , Assign "x" (FLit 4.5)
+  , Return (Var "x")
+  ]
+
+-- retorna 10.0
+prog19 :: Stmt 
+prog19 = Block
+  [ Decl TFloat "x" (FLit 4.5)
+  , Assign "x" (Lit 10)
+  , Return (Var "x")
+  ]
+
+prog20 :: Stmt
+prog20 = Block
+  [ Decl TInt "x" (Lit 2)
+  , Decl TInt "y" (Lit 0)
+  , Switch(Var "x")
+      [ (Lit 1, Assign "y" (Lit 10))
+      , (Lit 2, Assign "y" (Lit 20)) 
+      ]
+      (Assign "y" (Lit 30))
+  , Return (Var "y")
+  ]
+
 -- ============================================================
 -- Suite de testes HUnit
 -- ============================================================
@@ -532,6 +629,31 @@ testChamadaAninhada = TestCase $ do
   v <- runProg fenvExemplo prog6
   assertEqual "soma(dobro(4), 3) eh 11" (VInt 11) v
 
+testEscopoGlobal :: Test
+testEscopoGlobal = TestCase $ do
+  v <- runProg fenvExemplo prog16
+  assertEqual "soma global de x (100) e y (200)" (VInt 300) v
+
+testTipoIncompativel :: Test
+testTipoIncompativel = TestCase $ do
+  v <- runProg Map.empty prog17
+  assertEqual "x eh 10" (VInt 10) v
+
+testAssignIntFloat :: Test
+testAssignIntFloat = TestCase $ do
+  v <- runProg Map.empty prog18
+  assertEqual "x eh 4" (VInt 4) v
+
+testAssignFloatInt :: Test
+testAssignFloatInt = TestCase $ do
+  v <- runProg Map.empty prog19
+  assertEqual "x eh 10.0" (VFloat 10.0) v
+
+testSwitch :: Test
+testSwitch = TestCase $ do
+  v <- runProg Map.empty prog20
+  assertEqual "y eh 20" (VInt 20) v
+
 -- testes de saída impressa (usam runProgIO)
 
 testWhileImprime :: Test
@@ -568,6 +690,11 @@ suite = TestList
   , TestLabel "divisao float float"  testDivFloatFloat
   , TestLabel "divisao int int"      testDivIntInt
   , TestLabel "imprime float"        testImprimeFloat
+  , TestLabel "escopo global"        testEscopoGlobal
+  --, TestLabel "tipo incompativel"    testTipoIncompativel
+  , TestLabel "assign int float"     testAssignIntFloat
+  , TestLabel "assign float int"     testAssignFloatInt
+  , TestLabel "switch case"          testSwitch
   ]
 
 main :: IO ()

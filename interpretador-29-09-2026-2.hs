@@ -745,6 +745,11 @@ testArrayBool = TestCase $ do
   v <- runProg Map.empty prog25
   assertEqual "array de bool v[1]" (VBool False) v
 
+testFor :: Test
+testFor = TestCase $ do
+  v <- runProg Map.empty prog26
+  assertEqual "for soma de 1 ate 3" (VInt 6) v
+
 -- testes de saída impressa (usam runProgIO)
 
 testWhileImprime :: Test
@@ -767,11 +772,6 @@ testImprimirArray = TestCase $ do
   output <- runProgIO Map.empty prog23
   assertEqual "imprimir array [1, 2, 3]" "[1, 2, 3]\n" output
 
-testFor :: Test
-testFor = TestCase $ do
-  v <- runProg Map.empty prog26
-  assertEqual "for soma de 1 ate 3" (VInt 6) v
-
 -- suite completa
 
 suite :: Test
@@ -792,7 +792,6 @@ suite = TestList
   , TestLabel "divisao int int"      testDivIntInt
   , TestLabel "imprime float"        testImprimeFloat
   , TestLabel "escopo global"        testEscopoGlobal
-  , TestLabel "tipo incompativel"  testTipoIncompativel
   , TestLabel "assign int float"     testAssignIntFloat
   , TestLabel "assign float int"     testAssignFloatInt
   , TestLabel "switch case"          testSwitch

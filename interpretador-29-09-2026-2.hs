@@ -621,6 +621,17 @@ prog25 = Block
   , Return (Index "v" (Lit 1))
   ]
 
+-- int soma = 0; for(int i = 1; i <= 3; i = i + 1) 
+-- { soma = soma + i; } retorna soma (resultado: 6)
+prog26 :: Stmt
+prog26 = Block
+  [ Decl TInt "soma" (Lit 0)
+  , For (Decl TInt "i" (Lit 1)) 
+        (BinE Le (Var "i") (Lit 3)) 
+        (Assign "i" (BinE Add (Var "i") (Lit 1)))
+        (Assign "soma" (BinE Add (Var "soma") (Var "i")))
+  , Return (Var "soma")
+  ]
 
 
 -- ============================================================
@@ -756,6 +767,10 @@ testImprimirArray = TestCase $ do
   output <- runProgIO Map.empty prog23
   assertEqual "imprimir array [1, 2, 3]" "[1, 2, 3]\n" output
 
+testFor :: Test
+testFor = TestCase $ do
+  v <- runProg Map.empty prog26
+  assertEqual "for soma de 1 ate 3" (VInt 6) v
 
 -- suite completa
 
@@ -786,6 +801,7 @@ suite = TestList
   , TestLabel "imprimir array"       testImprimirArray
   , TestLabel "array de float"       testArrayFloat
   , TestLabel "array de bool"        testArrayBool
+  , TestLabel "for soma"             testFor
   ]
 
 main :: IO ()

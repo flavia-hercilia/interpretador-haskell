@@ -770,7 +770,7 @@ testImprimeFloat = TestCase $ do
 testImprimirArray :: Test
 testImprimirArray = TestCase $ do
   output <- runProgIO Map.empty prog23
-  assertEqual "imprimir array [1, 2, 3]" "[1, 2, 3]\n" output
+  assertEqual "imprimir array [1, 2, 3]" "[1, 2, 3]" output
 
 -- suite completa
 

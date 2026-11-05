@@ -309,7 +309,7 @@ execStmt fenv env stmt = case stmt of
             else procuraCaso alvo restoDaLista
     procuraCaso v casos
 
-    For inicio cond passo body -> do
+  For inicio cond passo body -> do
     resultadoInicio <- execStmt fenv env inicio
     case resultadoInicio of
       Returned v env' -> return (Returned v env')

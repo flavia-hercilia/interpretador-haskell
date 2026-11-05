@@ -51,6 +51,7 @@ data Stmt
   | Skip
   | Switch Expr [(Expr, Stmt)] Stmt
   | ArrayAssign String Expr Expr
+  | For Stmt Expr Stmt Stmt
   deriving (Show, Eq)
 
 data FunDecl = FunDecl
@@ -308,6 +309,27 @@ execStmt fenv env stmt = case stmt of
             else procuraCaso alvo restoDaLista
     procuraCaso v casos
 
+    For inicio cond passo body -> do
+    resultadoInicio <- execStmt fenv env inicio
+    case resultadoInicio of
+      Returned v env' -> return (Returned v env')
+      Next envInicial -> do
+        let repeteLaco envAtual = do
+              v <- evalExpr fenv envAtual cond
+              case v of
+                VBool False -> return (Next envAtual)
+                VBool True  -> do
+                  r <- execStmt fenv envAtual body
+                  case r of
+                    Returned v' env' -> return (Returned v' env')
+                    Next        env' -> do
+                      resultadoPasso <- execStmt fenv env' passo
+                      case resultadoPasso of
+                        Returned v'' env'' -> return (Returned v'' env'')
+                        Next         env'' -> repeteLaco env''
+                _ -> error "Condicao do For nao eh booleana"
+        repeteLaco envInicial
+ 
 -- ============================================================
 -- Execução de um bloco
 -- ============================================================
@@ -755,7 +777,7 @@ suite = TestList
   , TestLabel "divisao int int"      testDivIntInt
   , TestLabel "imprime float"        testImprimeFloat
   , TestLabel "escopo global"        testEscopoGlobal
-  --, TestLabel "tipo incompativel"  testTipoIncompativel
+  , TestLabel "tipo incompativel"  testTipoIncompativel
   , TestLabel "assign int float"     testAssignIntFloat
   , TestLabel "assign float int"     testAssignFloatInt
   , TestLabel "switch case"          testSwitch
